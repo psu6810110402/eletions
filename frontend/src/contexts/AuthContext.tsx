@@ -53,6 +53,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
+    // เก็บข้อมูลลง localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);

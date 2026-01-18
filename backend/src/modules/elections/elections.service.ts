@@ -1,8 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Election, ElectionStatus } from './election.entity';
 import { Candidate } from '../candidates/candidate.entity';
+
+interface CreateElectionData {
+  title: string;
+  startDate?: Date;
+  endDate?: Date;
+  candidates: { name: string; policy?: string; image?: string }[];
+}
+
+interface UpdateElectionData {
+  title?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
 
 @Injectable()
 export class ElectionsService {
@@ -13,7 +26,7 @@ export class ElectionsService {
     private candidatesRepository: Repository<Candidate>,
   ) {}
 
-  async create(data: { title: string; startDate?: Date; endDate?: Date; candidates: { name: string; policy?: string; image?: string }[] }) {
+  async create(data: CreateElectionData) {
     const election = this.electionsRepository.create({
       title: data.title,
       startDate: data.startDate,
@@ -29,6 +42,31 @@ export class ElectionsService {
       await this.candidatesRepository.save(candidates);
     }
     return this.findOne(savedElection.id);
+  }
+
+  async update(id: number, data: UpdateElectionData) {
+    const election = await this.electionsRepository.findOne({ where: { id } });
+    if (!election) {
+      throw new NotFoundException('Election not found');
+    }
+
+    if (data.title !== undefined) election.title = data.title;
+    if (data.startDate !== undefined) election.startDate = data.startDate;
+    if (data.endDate !== undefined) election.endDate = data.endDate;
+
+    await this.electionsRepository.save(election);
+    return this.findOne(id);
+  }
+
+  async updateStatus(id: number, status: ElectionStatus) {
+    const election = await this.electionsRepository.findOne({ where: { id } });
+    if (!election) {
+      throw new NotFoundException('Election not found');
+    }
+
+    election.status = status;
+    await this.electionsRepository.save(election);
+    return this.findOne(id);
   }
 
   async delete(id: number) {

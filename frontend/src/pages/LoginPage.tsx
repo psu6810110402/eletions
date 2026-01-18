@@ -1,27 +1,29 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Lock, User, VoteIcon } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Lock, User, VoteIcon } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 export const LoginPage = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
       await login(username, password);
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+      navigate("/dashboard");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการเข้าสู่ระบบ";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +49,7 @@ export const LoginPage = () => {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
             className="flex justify-center mb-8"
           >
             <div className="bg-gradient-to-br from-purple-500 to-blue-600 p-4 rounded-2xl">
@@ -65,9 +67,7 @@ export const LoginPage = () => {
             <h1 className="text-3xl font-bold text-white mb-2">
               ระบบเลือกตั้งออนไลน์
             </h1>
-            <p className="text-slate-300">
-              เข้าสู่ระบบเพื่อลงคะแนนเสียง
-            </p>
+            <p className="text-slate-300">เข้าสู่ระบบเพื่อลงคะแนนเสียง</p>
           </motion.div>
 
           {/* Form */}
@@ -138,16 +138,19 @@ export const LoginPage = () => {
               disabled={isLoading}
               className="w-full bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-purple-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
+              {isLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
             </motion.button>
 
             <div className="text-center mt-4">
-               <p className="text-sm text-slate-400">
-                 ยังไม่มีบัญชี?{' '}
-                 <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
-                   ลงทะเบียน
-                 </Link>
-               </p>
+              <p className="text-sm text-slate-400">
+                ยังไม่มีบัญชี?{" "}
+                <Link
+                  to="/register"
+                  className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                >
+                  ลงทะเบียน
+                </Link>
+              </p>
             </div>
           </form>
 
@@ -158,10 +161,17 @@ export const LoginPage = () => {
             transition={{ delay: 0.7 }}
             className="mt-6 p-4 bg-white/5 rounded-lg border border-white/10"
           >
-            <p className="text-xs text-slate-400 mb-2 font-medium">บัญชีทดสอบ:</p>
+            <p className="text-xs text-slate-400 mb-2 font-medium">
+              บัญชีทดสอบ:
+            </p>
             <div className="text-xs text-slate-300 space-y-1">
-              <p><span className="font-medium">Admin:</span> admin / admin123</p>
-              <p><span className="font-medium">Student:</span> std001 / student123</p>
+              <p>
+                <span className="font-medium">Admin:</span> admin / admin123
+              </p>
+              <p>
+                <span className="font-medium">Student:</span> std001 /
+                student123
+              </p>
             </div>
           </motion.div>
         </div>

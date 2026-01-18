@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LogOut, Users, BarChart3, Loader2 } from 'lucide-react';
+import { LogOut, Users, BarChart3, Loader2, AlertTriangle, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { isAxiosError } from 'axios';
 import type { Election, VotePayload, Vote } from '../types';
 import { VoteCard } from '../components/VoteCard';
+
+interface PendingVote {
+  electionId: number;
+  candidateId: number | null;
+  isVoteNo: boolean;
+}
 
 export const DashboardPage = () => {
   const { user, logout } = useAuth();
@@ -16,12 +22,15 @@ export const DashboardPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [votingMap, setVotingMap] = useState<Record<number, boolean>>({});
   const [votedMap, setVotedMap] = useState<Record<number, boolean>>({});
+  const [confirmDialog, setConfirmDialog] = useState<PendingVote | null>(null);
 
   useEffect(() => {
     fetchElections();
     fetchMyVotes();
   }, []);
 
+
+  // Load Elections
   const fetchElections = async () => {
     try {
       setError(null);
@@ -42,10 +51,11 @@ export const DashboardPage = () => {
       setLoading(false);
     }
   };
-
+  // load Vote History USER
   const fetchMyVotes = async () => {
     try {
       const response = await api.get<Vote[]>('/votes/my-votes');
+      // Create Map of voted elections
       const voted = response.data.reduce((acc: Record<number, boolean>, vote) => {
         acc[vote.electionId] = true;
         return acc;
@@ -56,9 +66,17 @@ export const DashboardPage = () => {
     }
   };
 
-  const handleVote = async (electionId: number, candidateId: number | null, isVoteNo: boolean) => {
-    if (!confirm('ยืนยันการลงคะแนน? การลงคะแนนไม่สามารถแก้ไขได้')) return;
+  const handleVote = (electionId: number, candidateId: number | null, isVoteNo: boolean) => {
+    // Show confirmation dialog instead of using native confirm()
+    setConfirmDialog({ electionId, candidateId, isVoteNo });
+  };
 
+  const confirmVote = async () => {
+    if (!confirmDialog) return;
+    
+    const { electionId, candidateId, isVoteNo } = confirmDialog;
+    setConfirmDialog(null);
+    
     setVotingMap(prev => ({ ...prev, [electionId]: true }));
     try {
       const payload: VotePayload = {
@@ -157,12 +175,55 @@ export const DashboardPage = () => {
                   onVote={handleVote}
                   hasVoted={votedMap[election.id]}
                   isVoting={votingMap[election.id]}
+                  // Sent Status "Voted"
                 />
               ))
             )}
           </div>
         </motion.div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {confirmDialog && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-slate-800 border border-white/20 rounded-2xl p-6 max-w-md mx-4 shadow-2xl"
+          >
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="bg-yellow-500/20 p-3 rounded-full">
+                <AlertTriangle className="w-6 h-6 text-yellow-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white">ยืนยันการลงคะแนน</h3>
+            </div>
+            <p className="text-slate-300 mb-6">
+              {confirmDialog.isVoteNo 
+                ? 'คุณต้องการไม่ประสงค์ลงคะแนนใช่หรือไม่?' 
+                : 'คุณต้องการลงคะแนนให้ผู้สมัครนี้ใช่หรือไม่?'}
+              <br />
+              <span className="text-yellow-400 text-sm mt-2 block">
+                ⚠️ การลงคะแนนไม่สามารถแก้ไขได้
+              </span>
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition flex items-center justify-center space-x-2"
+              >
+                <X className="w-4 h-4" />
+                <span>ยกเลิก</span>
+              </button>
+              <button
+                onClick={confirmVote}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl transition font-semibold"
+              >
+                ✓ ยืนยัน
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

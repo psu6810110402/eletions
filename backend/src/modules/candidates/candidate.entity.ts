@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, type Relation } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  type Relation,
+} from 'typeorm';
 import type { Election } from '../elections/election.entity';
 import type { Vote } from '../votes/vote.entity';
 

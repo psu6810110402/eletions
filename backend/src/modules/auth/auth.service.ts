@@ -1,9 +1,34 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../users/user.entity';
+import { User, UserRole } from '../users/user.entity';
 import * as bcrypt from 'bcrypt';
+
+export interface ValidatedUser {
+  id: number;
+  username: string;
+  role: string;
+  userType?: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  user: {
+    id: number;
+    username: string;
+    role: string;
+  };
+}
+
+export interface ChangePasswordResult {
+  message: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -13,16 +38,20 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(username: string, pass: string): Promise<any> {
+  async validateUser(
+    username: string,
+    pass: string,
+  ): Promise<ValidatedUser | null> {
     const user = await this.usersRepository.findOne({ where: { username } });
     if (user && (await bcrypt.compare(pass, user.password))) {
-      const { password, ...result } = user;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password: _, ...result } = user;
       return result;
     }
     return null;
   }
 
-  async login(user: any) {
+  login(user: ValidatedUser): LoginResponse {
     const payload = { username: user.username, sub: user.id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
@@ -34,25 +63,48 @@ export class AuthService {
     };
   }
 
-  async register(username: string, pass: string): Promise<any> {
-    // Check if user exists
-    const existing = await this.usersRepository.findOne({ where: { username } });
+  async register(username: string, pass: string): Promise<ValidatedUser> {
+    // 1. ตรวจสอบว่า username มีอยู่แล้วหรือไม่
+    const existing = await this.usersRepository.findOne({
+      where: { username },
+    });
     if (existing) {
-      throw new Error('Username already exists');
+      throw new BadRequestException('Username already exists');
     }
 
     const hashedPassword = await bcrypt.hash(pass, 10);
-    // Determine type by pattern (e.g. if username starts with 'admin' -> staff?)
-    // For now, public registration is always VOTER
     const user = this.usersRepository.create({
       username,
       password: hashedPassword,
-      role: 'VOTER' as any, // Type cast or import enum
-      userType: 'Student', // Default for public reg
+      role: UserRole.VOTER,
+      userType: 'Student',
     });
-    
+
     await this.usersRepository.save(user);
-    const { password, ...result } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...result } = user;
     return result;
+  }
+
+  async changePassword(
+    userId: number,
+    oldPassword: string,
+    newPassword: string,
+  ): Promise<ChangePasswordResult> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isValidPassword = await bcrypt.compare(oldPassword, user.password);
+    if (!isValidPassword) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await this.usersRepository.save(user);
+
+    return { message: 'Password changed successfully' };
   }
 }

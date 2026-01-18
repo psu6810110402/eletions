@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { UserPlus, ArrowRight, Lock, User } from 'lucide-react';
+import { AxiosError } from 'axios';
 import api from '../api/client';
 
 export const RegisterPage = () => {

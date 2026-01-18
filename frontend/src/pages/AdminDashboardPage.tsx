@@ -8,6 +8,18 @@ import { StatsChart } from '../components/StatsChart';
 import { isAxiosError } from 'axios';
 import type { Election, ElectionStats } from '../types';
 
+// Thai status translation
+const getStatusText = (status: string): string => {
+  switch (status) {
+    case 'ONGOING': return 'กำลังดำเนินการ';
+    case 'COMPLETED': return 'สิ้นสุดแล้ว';
+    case 'DRAFT': return 'ฉบับร่าง';
+    case 'CLOSED': return 'ปิดแล้ว';
+    case 'UPCOMING': return 'กำลังจะมาถึง';
+    default: return status;
+  }
+};
+
 export const AdminDashboardPage = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -115,7 +127,7 @@ export const AdminDashboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-20" style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}>
       {/* Navigation */}
       <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -223,7 +235,7 @@ export const AdminDashboardPage = () => {
                     <div>
                       <h3 className="text-xl font-bold text-white mb-2">{electionStats.title}</h3>
                       <div className="flex items-center space-x-4 text-sm">
-                         <span className="text-slate-400">สถานะ: <span className="text-green-400">{electionStats.status}</span></span>
+                         <span className="text-slate-400">สถานะ: <span className="text-green-400">{getStatusText(electionStats.status)}</span></span>
                          <span className="text-slate-400">ผู้มาใช้สิทธิ์: <span className="text-white font-bold">{electionStats.totalVotes}</span></span>
                          {electionStats.endDate && <span className="text-slate-500 text-xs">(จบ: {new Date(electionStats.endDate).toLocaleString()})</span>}
                       </div>

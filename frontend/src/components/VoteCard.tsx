@@ -2,6 +2,18 @@ import { motion } from 'framer-motion';
 import { User, CheckCircle } from 'lucide-react';
 import type { Election, Candidate } from '../types';
 
+// Thai status translation
+const getStatusText = (status: string): string => {
+  switch (status) {
+    case 'ONGOING': return 'กำลังดำเนินการ';
+    case 'COMPLETED': return 'สิ้นสุดแล้ว';
+    case 'DRAFT': return 'ฉบับร่าง';
+    case 'CLOSED': return 'ปิดแล้ว';
+    case 'UPCOMING': return 'กำลังจะมาถึง';
+    default: return status;
+  }
+};
+
 interface VoteCardProps {
   election: Election;
   onVote: (electionId: number, candidateId: number | null, isVoteNo: boolean) => void;
@@ -23,37 +35,61 @@ export const VoteCard: React.FC<VoteCardProps> = ({ election, onVote, hasVoted =
             election.status === 'COMPLETED' ? 'bg-red-500/20 text-red-400' :
             'bg-yellow-500/20 text-yellow-400'
           }`}>
-            {election.status}
+            {getStatusText(election.status)}
           </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {election.candidates.map((candidate: Candidate) => (
           <motion.button
             key={candidate.id}
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ scale: 1.02, y: -4 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => onVote(election.id, candidate.id, false)}
             disabled={hasVoted || isVoting || election.status !== 'ONGOING'}
-            className="relative group p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            className="relative group p-5 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/15 hover:to-white/10 rounded-2xl border border-white/20 hover:border-purple-500/50 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-purple-500/20"
           >
-            <div className="flex items-center space-x-4">
-              <div className="bg-gradient-to-br from-purple-500 to-blue-600 p-3 rounded-full">
-                {candidate.image ? (
-                  <img src={candidate.image} alt={candidate.name} className="w-6 h-6 rounded-full object-cover" /> 
-                ) : (
-                  <User className="w-6 h-6 text-white" />
-                )}
+            <div className="flex items-start space-x-4">
+              {/* Candidate Image */}
+              <div className="flex-shrink-0">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                  {candidate.image ? (
+                    <img 
+                      src={candidate.image} 
+                      alt={candidate.name} 
+                      className="relative w-20 h-20 rounded-full object-cover border-2 border-white/30 group-hover:border-purple-400 transition-colors bg-slate-700" 
+                    />
+                  ) : (
+                    <div className="relative bg-gradient-to-br from-purple-500 to-blue-600 w-20 h-20 rounded-full flex items-center justify-center border-2 border-white/30">
+                      <User className="w-10 h-10 text-white" />
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-white group-hover:text-blue-400 transition-colors">
+
+              {/* Candidate Info */}
+              <div className="flex-1 min-w-0">
+                <h4 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors mb-2">
                   {candidate.name}
                 </h4>
                 {candidate.policy && (
-                  <p className="text-xs text-slate-400 mt-1">{candidate.policy}</p>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-purple-400 uppercase tracking-wide">นโยบาย</p>
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                      {candidate.policy}
+                    </p>
+                  </div>
                 )}
               </div>
+            </div>
+
+            {/* Vote indicator */}
+            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-xs bg-purple-500/30 text-purple-300 px-2 py-1 rounded-full">
+                คลิกเพื่อเลือก
+              </span>
             </div>
           </motion.button>
         ))}

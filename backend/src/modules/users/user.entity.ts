@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, type Relation } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  type Relation,
+} from 'typeorm';
 import type { Vote } from '../votes/vote.entity';
 
 export enum UserRole {
