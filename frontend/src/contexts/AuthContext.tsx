@@ -47,8 +47,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Login failed');
+    } catch (error: unknown) {
+      const axiosErr = error as import('axios').AxiosError<{ message?: string }>;
+      throw new Error(axiosErr.response?.data?.message || 'Login failed');
     }
   };
 

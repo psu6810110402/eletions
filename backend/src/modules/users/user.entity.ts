@@ -3,9 +3,11 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
+  ManyToMany,
   type Relation,
 } from 'typeorm';
 import type { Vote } from '../votes/vote.entity';
+import type { Election } from '../elections/election.entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -35,4 +37,7 @@ export class User {
 
   @OneToMany('Vote', 'user')
   votes: Relation<Vote>[];
+
+  @ManyToMany('Election', 'eligibleVoters')
+  eligibleElections: Relation<Election>[];
 }

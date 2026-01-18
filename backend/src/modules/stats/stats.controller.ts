@@ -9,9 +9,11 @@ import {
 import type { Response } from 'express';
 import { StatsService } from './stats.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard, Roles } from '../auth/roles.guard';
+import { UserRole } from '../users/user.entity';
 
 @Controller('stats')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class StatsController {
   constructor(private readonly statsService: StatsService) {}
 
@@ -21,6 +23,7 @@ export class StatsController {
   }
 
   @Get(':electionId/export')
+  @Roles(UserRole.ADMIN)
   async exportCSV(
     @Param('electionId') electionId: string,
     @Res() res: Response,

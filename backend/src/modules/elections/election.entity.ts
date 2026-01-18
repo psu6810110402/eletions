@@ -3,10 +3,13 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
+  ManyToMany,
+  JoinTable,
   type Relation,
 } from 'typeorm';
 import type { Candidate } from '../candidates/candidate.entity';
 import type { Vote } from '../votes/vote.entity';
+import type { User } from '../users/user.entity';
 
 export enum ElectionStatus {
   DRAFT = 'DRAFT',
@@ -40,4 +43,12 @@ export class Election {
 
   @OneToMany('Vote', 'election')
   votes: Relation<Vote>[];
+
+  @ManyToMany('User', 'eligibleElections')
+  @JoinTable({
+    name: 'election_eligible_voters',
+    joinColumn: { name: 'electionId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'userId', referencedColumnName: 'id' },
+  })
+  eligibleVoters: Relation<User>[];
 }

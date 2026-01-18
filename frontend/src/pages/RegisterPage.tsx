@@ -32,8 +32,9 @@ export const RegisterPage = () => {
       });
       // Success -> Redirect to login
       navigate('/login?registered=true');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'การลงทะเบียนล้มเหลว ลองเปลี่ยนชื่อผู้ใช้งาน');
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      setError(axiosErr.response?.data?.message || 'การลงทะเบียนล้มเหลว ลองเปลี่ยนชื่อผู้ใช้งาน');
     } finally {
       setIsLoading(false);
     }
