@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LogOut, Users, BarChart3, Loader2, AlertTriangle, X } from 'lucide-react';
+import { LogOut, Users, BarChart3, Loader2, AlertTriangle, X, Plus, Edit2, Trash2, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
@@ -23,6 +23,8 @@ export const DashboardPage = () => {
   const [votingMap, setVotingMap] = useState<Record<number, boolean>>({});
   const [votedMap, setVotedMap] = useState<Record<number, boolean>>({});
   const [confirmDialog, setConfirmDialog] = useState<PendingVote | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchElections();
@@ -101,6 +103,69 @@ export const DashboardPage = () => {
     navigate('/login');
   };
 
+  // Admin Functions
+  const handleCreateElection = () => {
+    const title = prompt('กรุณากรอกชื่อการเลือกตั้ง:');
+    if (title) {
+      api.post('/elections', { title, status: 'DRAFT' })
+        .then(() => {
+          alert('สร้างการเลือกตั้งสำเร็จ!');
+          fetchElections();
+        })
+        .catch((err) => {
+          alert('เกิดข้อผิดพลาด: ' + (err.response?.data?.message || err.message));
+        });
+    }
+  };
+
+  const handleEditElection = (electionId: number, currentTitle: string) => {
+    const newTitle = prompt('แก้ไขชื่อการเลือกตั้ง:', currentTitle);
+    if (newTitle && newTitle !== currentTitle) {
+      api.patch(`/elections/${electionId}`, { title: newTitle })
+        .then(() => {
+          alert('แก้ไขสำเร็จ!');
+          fetchElections();
+        })
+        .catch((err) => {
+          alert('เกิดข้อผิดพลาด: ' + (err.response?.data?.message || err.message));
+        });
+    }
+  };
+
+  const handleDeleteElection = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/elections/${deleteConfirm}`);
+      alert('ลบการเลือกตั้งสำเร็จ!');
+      fetchElections();
+    } catch (err) {
+      const message = isAxiosError(err) ? err.response?.data?.message : 'การลบล้มเหลว';
+      alert(message);
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(null);
+    }
+  };
+
+  const handleExportCSV = async (electionId: number) => {
+    try {
+      const response = await api.get(`/stats/${electionId}/export`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `election-${electionId}-results.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      const message = isAxiosError(err) ? err.response?.data?.message : 'การส่งออกล้มเหลว';
+      alert(message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20 sticky top-0 z-50">
@@ -146,7 +211,18 @@ export const DashboardPage = () => {
           </div>
 
           <div className="space-y-6">
-            <h3 className="text-2xl font-bold text-white mb-4">🗳️ รายการเลือกตั้ง</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-2xl font-bold text-white">🗳️ รายการเลือกตั้ง</h3>
+              {user?.role === 'ADMIN' && (
+                <button
+                  onClick={handleCreateElection}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg transition font-semibold"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>สร้างการเลือกตั้ง</span>
+                </button>
+              )}
+            </div>
             
             {loading ? (
               <div className="flex justify-center p-12">
@@ -169,14 +245,40 @@ export const DashboardPage = () => {
               </div>
             ) : (
               elections.map((election) => (
-                <VoteCard
-                  key={election.id}
-                  election={election}
-                  onVote={handleVote}
-                  hasVoted={votedMap[election.id]}
-                  isVoting={votingMap[election.id]}
-                  // Sent Status "Voted"
-                />
+                <div key={election.id} className="relative">
+                  {/* Admin Controls */}
+                  {user?.role === 'ADMIN' && (
+                    <div className="absolute top-4 right-4 flex space-x-2 z-10">
+                      <button
+                        onClick={() => handleEditElection(election.id, election.title)}
+                        className="p-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition"
+                        title="แก้ไข"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(election.id)}
+                        className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition"
+                        title="ลบ"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleExportCSV(election.id)}
+                        className="p-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition"
+                        title="ส่งออก CSV"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  <VoteCard
+                    election={election}
+                    onVote={handleVote}
+                    hasVoted={votedMap[election.id]}
+                    isVoting={votingMap[election.id]}
+                  />
+                </div>
               ))
             )}
           </div>
@@ -219,6 +321,53 @@ export const DashboardPage = () => {
                 className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl transition font-semibold"
               >
                 ✓ ยืนยัน
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-slate-800 border border-white/20 rounded-2xl p-6 max-w-md mx-4 shadow-2xl"
+          >
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="bg-red-500/20 p-3 rounded-full">
+                <Trash2 className="w-6 h-6 text-red-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white">ยืนยันการลบ</h3>
+            </div>
+            <p className="text-slate-300 mb-6">
+              คุณต้องการลบการเลือกตั้งนี้ใช่หรือไม่?
+              <br />
+              <span className="text-red-400 text-sm mt-2 block">
+                ⚠️ การลบไม่สามารถกู้คืนได้
+              </span>
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleting}
+                className="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition flex items-center justify-center space-x-2"
+              >
+                <X className="w-4 h-4" />
+                <span>ยกเลิก</span>
+              </button>
+              <button
+                onClick={handleDeleteElection}
+                disabled={deleting}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl transition font-semibold flex items-center justify-center space-x-2"
+              >
+                {deleting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                <span>{deleting ? 'กำลังลบ...' : 'ลบ'}</span>
               </button>
             </div>
           </motion.div>
